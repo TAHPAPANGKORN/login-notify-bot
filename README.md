@@ -1,78 +1,89 @@
-# Discord Voice Channel Monitor Bot
+# Discord Voice Channel Monitor Bot (with DM Dashboard)
 
-A lightweight Node.js Discord bot using `discord.js` (v14+) that monitors voice channels and sends a text notification tagging the server owner when someone joins.
+A lightweight Node.js Discord bot using `discord.js` (v14+) and `mongoose` that monitors voice channels and sends interactive Direct Message (DM) alerts directly to the owner. It keeps track of daily voice channel session durations and features a clean, monospaced dashboard that can be refreshed or reset directly from the chat.
 
 ---
 
 ## Features
 
-- **Voice Channel Join & Switch Detection**: Triggers alerts when a user joins a voice channel or switches between voice channels.
-- **Leave Events Ignored**: Does not spam you when people leave a channel.
-- **Self-Notification Prevention**: Does not trigger alerts when the configured Owner joins a voice channel.
-- **Bot Filter**: Automatically filters out bot accounts to prevent loop notifications.
-- **Direct Owner Ping**: Sends an alert tagged with the owner's ID, triggering a mobile/desktop push notification.
+- **Voice Channel Join & Switch Detection**: Sends an alert when a user joins or switches voice channels.
+- **Ignore Leave Events**: Does not spam your DMs when people leave a channel.
+- **Owner Self-Notification Bypass**: Does not notify you when you join a channel yourself.
+- **Interactive DM Dashboard**: Attached buttons in the DM alert allow you to view today's voice stats (calculated in real-time) or reset them.
+- **Production-Ready Database**: Saves connection history to MongoDB (supports Docker for local development and MongoDB Atlas for production).
 
 ---
 
 ## Installation & Setup
 
 ### 1. Prerequisites
-Ensure you have [Node.js](https://nodejs.org/) installed (v16.11.0 or higher is required for `discord.js` v14+).
+Ensure you have the following installed:
+- [Node.js](https://nodejs.org/) (v16.11.0 or higher is required for `discord.js` v14+)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (for local MongoDB database)
 
 ### 2. Install Dependencies
-Clone or download this project, navigate to the folder, and install the required modules:
+Navigate to the project folder and run:
 ```bash
 npm install
 ```
 
-### 3. Environment Configuration
-Copy the `.env.example` file to a new file named `.env`:
+### 3. Run Local Database (Docker)
+Start a local MongoDB container in the background:
+```bash
+docker run -d --name mongodb-local -p 27017:27017 mongo:latest
+```
+*Note: Make sure your Docker Desktop app is running before executing the command.*
+
+### 4. Environment Configuration
+Copy the `.env.example` file to `.env`:
 ```bash
 cp .env.example .env
 ```
 Open `.env` and fill in your details:
-- `DISCORD_BOT_TOKEN`: The private token of your Discord bot.
-- `ALERT_CHANNEL_ID`: The ID of the text channel where notification messages will be sent.
-- `OWNER_ID`: Your personal Discord User ID to ensure you receive the push notification.
+- `DISCORD_BOT_TOKEN`: Your private Discord bot token.
+- `OWNER_ID`: Your personal Discord User ID.
+- `MONGODB_URI`: The connection URI for MongoDB. 
+  - **For Development (Local Docker)**: Use `mongodb://127.0.0.1:27017/voice_monitor_dev`
+  - **For Production**: Use your MongoDB Atlas connection string (e.g. `mongodb+srv://...`)
 
 ---
 
-## Discord Developer Portal Configuration Checklist
+## How to Run Locally
 
-To make the bot function, you must set it up correctly in the [Discord Developer Portal](https://discord.com/developers/applications):
-
-### 1. Enable Required Bot Intents
-When configuring your bot in the Discord Developer Portal, navigate to the **Bot** tab on the left menu, scroll down to the **Privileged Gateway Intents** section, and note the following:
-
-- **Presence Intent**: ❌ **Not Required**. (Used for user status/activities).
-- **Server Members Intent**: ❌ **Not Required**. (Voice update payloads include member data automatically).
-- **Message Content Intent**: ❌ **Not Required**. (Your bot only *sends* messages and does not read messages sent by other users).
-
-> [!TIP]
-> Because this bot uses only standard intents (`Guilds` and `GuildVoiceStates`), you **do not** need to toggle on any Privileged Gateway Intents for this bot to work! This keeps the bot secure and means it does not require special approval from Discord.
-
-### 2. Generate Invite Link & Permissions
-To add the bot to your server, go to the **OAuth2** tab, click **URL Generator**, and configure as follows:
-- **Scopes**: Select `bot`.
-- **Bot Permissions**: Select the following permissions:
-  - `Read Messages/View Channels` (under General Permissions)
-  - `Send Messages` (under Text Permissions)
-  - `Embed Links` (under Text Permissions)
-  - `Read Message History` (under Text Permissions)
-- Copy the generated URL at the bottom and open it in your browser to invite the bot to your guild.
-
----
-
-## How to Run
-
-To start the bot in development mode:
-```bash
-node index.js
-```
-
-Or you can add a start script in `package.json` to run it:
+Start the bot in development mode:
 ```bash
 npm start
 ```
-*(To do this, add `"start": "node index.js"` under the `"scripts"` object in your `package.json`.)*
-# checkInNotiDiscordBot
+Upon a successful connection, you should see:
+```text
+Web server listening on port 3000
+Successfully connected to production database (MongoDB Atlas).  # Or local MongoDB
+Logged in and ready as BotName#1234!
+Monitoring voice channels. Alerts will be sent directly via DM to User ID: XXXXXXXXX
+```
+
+---
+
+## Accessing the Local Database
+To view the recorded voice session collections locally:
+
+- **Option A (GUI)**: Download [MongoDB Compass](https://www.mongodb.com/products/tools/compass) and connect using `mongodb://localhost:27017`. Locate the `voice_monitor_dev` database and the `voice_session_stats` collection.
+- **Option B (CLI)**: Run the Mongo Shell directly inside the Docker container:
+  ```bash
+  docker exec -it mongodb-local mongosh
+  use voice_monitor_dev
+  db.voice_session_stats.find()
+  ```
+
+---
+
+## Production Deployment (Render)
+
+1. Upload the code to your GitHub repository (excluding `node_modules` and `.env`).
+2. Create a new **Web Service** on [Render](https://render.com/).
+3. Set the following options:
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start` (or `node index.js`)
+   - **Instance Type**: `Free`
+4. Add the environment variables (`DISCORD_BOT_TOKEN`, `OWNER_ID`, `MONGODB_URI` pointing to MongoDB Atlas) in the **Environment** tab.
+5. Create a free ping job on [cron-job.org](https://cron-job.org/) that pings the Render Web Service URL every 5 minutes to prevent the bot from sleeping.
