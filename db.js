@@ -1,7 +1,36 @@
-import fs from 'fs/promises';
-import path from 'path';
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
 
-const STATS_FILE = path.resolve('voice_stats.json');
+// Load environment variables from .env file
+dotenv.config();
+
+const { MONGODB_URI } = process.env;
+
+if (!MONGODB_URI) {
+  console.error('Error: MONGODB_URI is not defined in the environment variables.');
+  process.exit(1);
+}
+
+// Connect to MongoDB with production-friendly options and connection status logs
+mongoose.connect(MONGODB_URI)
+  .then(() => console.log('Successfully connected to production database (MongoDB Atlas).'))
+  .catch((err) => {
+    console.error('Database connection error:', err);
+  });
+
+// Schema definition for statistics
+const StatSchema = new mongoose.Schema({
+  date: { type: String, required: true, unique: true },
+  users: {
+    type: Map,
+    of: new mongoose.Schema({
+      username: { type: String, required: true },
+      totalDurationMs: { type: Number, required: true, default: 0 }
+    }, { _id: false })
+  }
+}, { collection: 'voice_session_stats' }); // Explicit production collection name
+
+const Stat = mongoose.model('Stat', StatSchema);
 
 /**
  * Returns the current date in YYYY-MM-DD format using the local timezone offset.
@@ -14,71 +43,52 @@ export function getLocalDateString() {
 }
 
 /**
- * Reads all stats from the JSON file.
- */
-async function readStatsFile() {
-  try {
-    const content = await fs.readFile(STATS_FILE, 'utf-8');
-    return JSON.parse(content);
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      return {};
-    }
-    console.error('Error reading stats file:', error);
-    return {};
-  }
-}
-
-/**
- * Writes stats back to the JSON file.
- */
-async function writeStatsFile(data) {
-  try {
-    await fs.writeFile(STATS_FILE, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (error) {
-    console.error('Error writing stats file:', error);
-  }
-}
-
-/**
  * Adds connection duration to a user's total for the current date.
  */
 export async function addDuration(userId, username, durationMs) {
-  const data = await readStatsFile();
-  const dateStr = getLocalDateString();
+  try {
+    const dateStr = getLocalDateString();
+    
+    // Find or create statistics document for the current date
+    let stat = await Stat.findOne({ date: dateStr });
+    if (!stat) {
+      stat = new Stat({ date: dateStr, users: new Map() });
+    }
 
-  if (!data[dateStr]) {
-    data[dateStr] = {};
+    // Retrieve or initialize user stat record
+    const userStat = stat.users.get(userId) || { username, totalDurationMs: 0 };
+    userStat.username = username;
+    userStat.totalDurationMs += durationMs;
+    stat.users.set(userId, userStat);
+
+    await stat.save();
+  } catch (error) {
+    console.error('Error adding duration to MongoDB:', error);
   }
-
-  if (!data[dateStr][userId]) {
-    data[dateStr][userId] = {
-      username: username,
-      totalDurationMs: 0
-    };
-  }
-
-  data[dateStr][userId].username = username; // Update username in case it has changed
-  data[dateStr][userId].totalDurationMs += durationMs;
-
-  await writeStatsFile(data);
 }
 
 /**
  * Retrieves the connection duration stats for the current date.
  */
 export async function getStatsForToday() {
-  const data = await readStatsFile();
-  const dateStr = getLocalDateString();
-  return data[dateStr] || {};
+  try {
+    const dateStr = getLocalDateString();
+    const stat = await Stat.findOne({ date: dateStr });
+    return stat && stat.users ? Object.fromEntries(stat.users) : {};
+  } catch (error) {
+    console.error('Error fetching stats from MongoDB:', error);
+    return {};
+  }
 }
 
 /**
  * Resets the voice duration statistics for the current date.
  */
 export async function resetStatsForToday() {
-  const data = await readStatsFile();
-  const dateStr = getLocalDateString();
-  delete data[dateStr];
-  await writeStatsFile(data);
+  try {
+    const dateStr = getLocalDateString();
+    await Stat.deleteOne({ date: dateStr });
+  } catch (error) {
+    console.error('Error resetting stats in MongoDB:', error);
+  }
 }

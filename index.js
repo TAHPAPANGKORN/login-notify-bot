@@ -6,12 +6,12 @@ import { addDuration, getStatsForToday, resetStatsForToday } from './db.js';
 // Load environment variables from .env file
 dotenv.config();
 
-const { DISCORD_BOT_TOKEN, OWNER_ID } = process.env;
+const { DISCORD_BOT_TOKEN, OWNER_ID, MONGODB_URI } = process.env;
 
 // Validate environment variables
-if (!DISCORD_BOT_TOKEN || !OWNER_ID) {
+if (!DISCORD_BOT_TOKEN || !OWNER_ID || !MONGODB_URI) {
   console.error('Error: Missing required environment variables in the .env file.');
-  console.error('Please verify that DISCORD_BOT_TOKEN and OWNER_ID are defined.');
+  console.error('Please verify that DISCORD_BOT_TOKEN, OWNER_ID, and MONGODB_URI are defined.');
   process.exit(1);
 }
 
