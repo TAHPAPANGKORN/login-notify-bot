@@ -31,8 +31,8 @@ export async function execute(oldState, newState) {
     if (joinTime) {
       const durationMs = Date.now() - joinTime;
       joinTimes.delete(member.id);
-      await addDuration(member.id, member.displayName, durationMs);
-      console.log(`Tracked: ${member.displayName} spent ${Math.round(durationMs / 1000)}s in voice.`);
+      await addDuration(member.id, member.user.username, durationMs);
+      console.log(`Tracked: ${member.user.username} spent ${Math.round(durationMs / 1000)}s in voice.`);
     }
   }
 
