@@ -34,7 +34,7 @@ export async function handleViewStats(interaction) {
     for (const guild of client.guilds.cache.values()) {
       const member = guild.members.cache.get(userId);
       if (member) {
-        username = member.user.username;
+        username = member.displayName;
         break;
       }
     }

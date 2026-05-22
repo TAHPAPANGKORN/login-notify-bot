@@ -28,8 +28,8 @@ export function formatStatsTable(userEntries) {
   }
 
   const lines = [
-    'User             Duration       Status',
-    '--------------------------------------'
+    'User         Duration     Status',
+    '---------------------------------'
   ];
 
   userEntries.forEach(([_, userStat]) => {

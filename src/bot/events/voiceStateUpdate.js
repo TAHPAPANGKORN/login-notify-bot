@@ -31,8 +31,8 @@ export async function execute(oldState, newState) {
     if (joinTime) {
       const durationMs = Date.now() - joinTime;
       joinTimes.delete(member.id);
-      await addDuration(member.id, member.user.username, durationMs);
-      console.log(`Tracked: ${member.user.username} spent ${Math.round(durationMs / 1000)}s in voice.`);
+      await addDuration(member.id, member.displayName, durationMs);
+      console.log(`Tracked: ${member.displayName} spent ${Math.round(durationMs / 1000)}s in voice.`);
     }
   }
 
@@ -44,11 +44,11 @@ export async function execute(oldState, newState) {
   // Do NOT notify if the user who joined is the Owner (prevents self-notification)
   if (isJoinOrSwitch) {
     if (member.id === config.ownerId) {
-      console.log(`Owner (${member.user.username}) joined voice channel. Notification skipped.`);
+      console.log(`Owner (${member.displayName}) joined voice channel. Notification skipped.`);
       return;
     }
 
-    const username = member.user.username;
+    const username = member.displayName;
     const voiceChannel = newState.channel;
     const voiceChannelName = voiceChannel ? voiceChannel.name : 'Unknown Voice Channel';
 
@@ -63,10 +63,8 @@ export async function execute(oldState, newState) {
         return;
       }
 
-      // Construct alert message (without emoji)
-      const alertMessage = `**${username}** has joined the voice channel **${voiceChannelName}** in server **${newState.guild.name}**`;
+      const alertMessage = `**${username}** join **${voiceChannelName}**`;
 
-      // Create interactive buttons for DM notification (without emojis)
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId('view_stats_today')
