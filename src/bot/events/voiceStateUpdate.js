@@ -65,11 +65,11 @@ export async function execute(oldState, newState) {
 
       let alertMessage;
       if (!oldChannelId) {
-        alertMessage = `**${username}** join **${voiceChannelName}**`;
+        alertMessage = `${username} join ${voiceChannelName}`;
       } else {
         const oldChannel = oldState.channel;
         const oldChannelName = oldChannel ? oldChannel.name : 'Unknown Voice Channel';
-        alertMessage = `**${username}** moved from **${oldChannelName}** to **${voiceChannelName}**`;
+        alertMessage = `${username} moved from ${oldChannelName} to ${voiceChannelName}`;
       }
 
       const row = new ActionRowBuilder().addComponents(
