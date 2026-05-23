@@ -29,16 +29,14 @@ export async function handleViewStats(interaction) {
   const { client } = interaction;
   for (const [userId, joinTime] of joinTimes.entries()) {
     let username = 'Unknown User';
-    
     // Resolve username from client cache across guilds
     for (const guild of client.guilds.cache.values()) {
-      const member = guild.members.cache.get(userId);
+      const member = guild.members.cache.get(userId) || guild.voiceStates.cache.get(userId)?.member;
       if (member) {
         username = member.user.username;
         break;
       }
     }
-
     const activeDuration = Date.now() - joinTime;
 
     if (!combinedStats[userId]) {

@@ -1,5 +1,5 @@
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { resetStatsForToday } from '../../services/statService.js';
+import { resetStatsForToday, resetActiveSessions } from '../../services/statService.js';
 import { joinTimes } from '../client.js';
 
 /**
@@ -14,9 +14,12 @@ export async function handleResetStats(interaction) {
   await resetStatsForToday();
 
   // For any users currently in a voice channel, reset their in-memory session start to "now"
-  for (const userId of joinTimes.keys()) {
-    joinTimes.set(userId, Date.now());
+  const activeUserIds = Array.from(joinTimes.keys());
+  const now = Date.now();
+  for (const userId of activeUserIds) {
+    joinTimes.set(userId, now);
   }
+  await resetActiveSessions(activeUserIds);
 
   const embed = new EmbedBuilder()
     .setColor('#ED4245') // Red

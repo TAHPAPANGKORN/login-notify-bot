@@ -1,7 +1,8 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { config } from '../../config/index.js';
 import { joinTimes } from '../client.js';
-import { addDuration } from '../../services/statService.js';
+import { addDuration, saveActiveSession, deleteActiveSession } from '../../services/statService.js';
+
 
 export const name = 'voiceStateUpdate';
 
@@ -32,13 +33,16 @@ export async function execute(oldState, newState) {
       const durationMs = Date.now() - joinTime;
       joinTimes.delete(member.id);
       await addDuration(member.id, member.user.username, durationMs);
+      await deleteActiveSession(member.id);
       console.log(`Tracked: ${member.user.username} spent ${Math.round(durationMs / 1000)}s in voice.`);
     }
   }
 
   // Cache join time when they connect to a channel
   if (newChannelId && (oldChannelId !== newChannelId)) {
-    joinTimes.set(member.id, Date.now());
+    const now = Date.now();
+    joinTimes.set(member.id, now);
+    await saveActiveSession(member.id, member.user.username, now);
   }
 
   // Do NOT notify if the user who joined is the Owner (prevents self-notification)
