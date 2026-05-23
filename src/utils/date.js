@@ -1,10 +1,13 @@
 /**
- * Returns the current date in YYYY-MM-DD format using the local timezone offset.
+ * Returns the current date in YYYY-MM-DD format using the Asia/Bangkok (GMT+7) timezone.
  * @returns {string} The local date string.
  */
 export function getLocalDateString() {
-  const d = new Date();
-  const offset = d.getTimezoneOffset();
-  const localDate = new Date(d.getTime() - (offset * 60 * 1000));
-  return localDate.toISOString().split('T')[0];
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(new Date());
 }
+

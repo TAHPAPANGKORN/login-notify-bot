@@ -56,7 +56,7 @@ export async function handleViewStats(interaction) {
   // Build the dashboard embed
   const embed = new EmbedBuilder()
     .setColor('#5865F2') // Discord Blurple
-    .setTitle(`Voice Session Dashboard - ${new Date().toLocaleDateString()}`)
+    .setTitle(`Voice Session Dashboard - ${new Date().toLocaleDateString('en-GB', { timeZone: 'Asia/Bangkok', day: '2-digit', month: 'short', year: 'numeric' })}`)
     .setDescription(formatStatsTable(userEntries))
     .setTimestamp();
 
