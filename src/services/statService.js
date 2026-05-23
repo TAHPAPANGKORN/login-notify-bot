@@ -72,7 +72,7 @@ export async function saveActiveSession(userId, username, joinTime) {
     await ActiveSession.findOneAndUpdate(
       { userId },
       { username, joinTime: time },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
   } catch (error) {
     console.error(`Error saving active session for user ${username} (${userId}) to MongoDB:`, error);
