@@ -10,6 +10,8 @@ A lightweight Node.js Discord bot using `discord.js` (v14+) and `mongoose` that 
 - **Ignore Leave Events**: Does not spam your DMs when people leave a channel.
 - **Owner Self-Notification Bypass**: Does not notify you when you join a channel yourself.
 - **Interactive DM Dashboard**: Attached buttons in the DM alert allow you to view today's voice stats (calculated in real-time) or reset them.
+- **Persistent Active Tracking**: Saves active voice sessions to the database, ensuring seamless time tracking and accurate dashboard stats even if the bot process restarts.
+- **Timezone Locked to GMT+7**: Daily statistics and dashboard titles are locked to the `Asia/Bangkok` timezone to prevent date mismatches across servers.
 - **Production-Ready Database**: Saves connection history to MongoDB (supports Docker for local development and MongoDB Atlas for production).
 
 ---
@@ -67,23 +69,6 @@ Monitoring voice channels. Alerts will be sent directly via DM to User ID: XXXXX
 ## Accessing the Local Database
 To view the recorded voice session collections locally:
 
-- **Option A (GUI)**: Download [MongoDB Compass](https://www.mongodb.com/products/tools/compass) and connect using `mongodb://localhost:27017`. Locate the `voice_monitor_dev` database and the `voice_session_stats` collection.
-- **Option B (CLI)**: Run the Mongo Shell directly inside the Docker container:
-  ```bash
-  docker exec -it mongodb-local mongosh
-  use voice_monitor_dev
-  db.voice_session_stats.find()
-  ```
-
----
-
-## Production Deployment (Render)
-
-1. Upload the code to your GitHub repository (excluding `node_modules` and `.env`).
-2. Create a new **Web Service** on [Render](https://render.com/).
-3. Set the following options:
-   - **Build Command**: `npm install`
-   - **Start Command**: `npm start` (or `node index.js`)
-   - **Instance Type**: `Free`
-4. Add the environment variables (`DISCORD_BOT_TOKEN`, `OWNER_ID`, `MONGODB_URI` pointing to MongoDB Atlas) in the **Environment** tab.
-5. Create a free ping job on [cron-job.org](https://cron-job.org/) that pings the Render Web Service URL every 5 minutes to prevent the bot from sleeping.
+- **Option A (GUI)**: Download [MongoDB Compass](https://www.mongodb.com/products/tools/compass) and connect using `mongodb://localhost:27017`. Locate the `voice_monitor_dev` database. You will see two collections:
+  - `voice_session_stats`: Today's accumulated duration stats.
+  - `active_sessions`: Temporary sessions tracking active users currently in voice channels.
