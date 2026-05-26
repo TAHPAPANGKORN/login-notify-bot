@@ -45,28 +45,46 @@ export async function execute(oldState, newState) {
     await saveActiveSession(member.id, member.user.username, now);
   }
 
-  // Do NOT notify if the user who joined is the Owner (prevents self-notification)
-  if (isJoinOrSwitch) {
-    if (member.id === config.ownerId) {
-      console.log(`Owner (${member.displayName}) joined voice channel. Notification skipped.`);
-      return;
-    }
-
+  // Do NOT notify if the user is the Owner (prevents self-notification)
+  if (member.id !== config.ownerId) {
     const username = member.displayName;
     const voiceChannel = newState.channel;
     const voiceChannelName = voiceChannel ? voiceChannel.name : 'Unknown Voice Channel';
 
-    try {
-      const { client } = newState;
-      // Fetch the owner user object
-      const owner = client.users.cache.get(config.ownerId) 
-        || await client.users.fetch(config.ownerId);
+    const notifyOwner = async (client, alertMessage) => {
+      try {
+        const owner = client.users.cache.get(config.ownerId) 
+          || await client.users.fetch(config.ownerId);
 
-      if (!owner) {
-        console.error(`Owner with ID ${config.ownerId} was not found.`);
-        return;
+        if (!owner) {
+          console.error(`Owner with ID ${config.ownerId} was not found.`);
+          return;
+        }
+
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('view_stats_today')
+            .setLabel("View Today's Stats")
+            .setStyle(ButtonStyle.Primary),
+          new ButtonBuilder()
+            .setCustomId('reset_stats_today')
+            .setLabel('Reset Stats')
+            .setStyle(ButtonStyle.Danger)
+        );
+
+        // Send the DM notification
+        await owner.send({
+          content: alertMessage,
+          components: [row]
+        });
+        console.log(`Sent DM alert to owner: "${alertMessage}"`);
+      } catch (error) {
+        console.error(`Error sending DM to owner ${config.ownerId}:`, error);
       }
+    };
 
+    // 1. Handle join or switch notification
+    if (isJoinOrSwitch) {
       let alertMessage;
       if (!oldChannelId) {
         alertMessage = `${username} join ${voiceChannelName}`;
@@ -75,26 +93,25 @@ export async function execute(oldState, newState) {
         const oldChannelName = oldChannel ? oldChannel.name : 'Unknown Voice Channel';
         alertMessage = `${username} moved from ${oldChannelName} to ${voiceChannelName}`;
       }
+      await notifyOwner(newState.client, alertMessage);
+    }
 
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId('view_stats_today')
-          .setLabel("View Today's Stats")
-          .setStyle(ButtonStyle.Primary),
-        new ButtonBuilder()
-          .setCustomId('reset_stats_today')
-          .setLabel('Reset Stats')
-          .setStyle(ButtonStyle.Danger)
-      );
+    // 2. Handle screen share (streaming) started notification
+    const screenShareStarted = !oldState.streaming && newState.streaming;
+    if (screenShareStarted) {
+      const alertMessage = `${username} started sharing screen in ${voiceChannelName}`;
+      await notifyOwner(newState.client, alertMessage);
+    }
 
-      // Send the DM notification
-      await owner.send({
-        content: alertMessage,
-        components: [row]
-      });
-      console.log(`Sent DM alert to owner: ${username} joined "${voiceChannelName}".`);
-    } catch (error) {
-      console.error(`Error sending DM to owner ${config.ownerId}:`, error);
+    // 3. Handle camera (video) opened notification
+    const cameraStarted = !oldState.selfVideo && newState.selfVideo;
+    if (cameraStarted) {
+      const alertMessage = `${username} turned on camera in ${voiceChannelName}`;
+      await notifyOwner(newState.client, alertMessage);
+    }
+  } else {
+    if (isJoinOrSwitch) {
+      console.log(`Owner (${member.displayName}) joined voice channel. Notification skipped.`);
     }
   }
 }
