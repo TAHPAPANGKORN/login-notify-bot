@@ -1,3 +1,4 @@
+import { REST, Routes, SlashCommandBuilder } from 'discord.js';
 import { config } from '../../config/index.js';
 import { joinTimes } from '../client.js';
 import { getActiveSessions, saveActiveSession, deleteActiveSession } from '../../services/statService.js';
@@ -11,6 +12,42 @@ export const once = true;
  */
 export async function execute(client) {
   console.log(`Logged in and ready as ${client.user.tag}!`);
+
+  // Register Slash Commands dynamically
+  try {
+    console.log('Started refreshing application (/) commands globally...');
+    const rest = new REST({ version: '10' }).setToken(config.discordToken);
+
+    const commands = [
+      new SlashCommandBuilder()
+        .setName('ignore-room')
+        .setDescription('Ignore login notifications for a specific voice channel')
+        .addStringOption(option =>
+          option.setName('room')
+            .setDescription('The name of the voice channel to ignore')
+            .setRequired(true)
+        ),
+      new SlashCommandBuilder()
+        .setName('unignore-room')
+        .setDescription('Stop ignoring login notifications for a specific voice channel')
+        .addStringOption(option =>
+          option.setName('room')
+            .setDescription('The name of the voice channel to unignore')
+            .setRequired(true)
+        ),
+      new SlashCommandBuilder()
+        .setName('list-ignored-rooms')
+        .setDescription('List all ignored voice channels')
+    ].map(command => command.toJSON());
+
+    await rest.put(
+      Routes.applicationCommands(client.user.id),
+      { body: commands }
+    );
+    console.log('Successfully reloaded application (/) commands.');
+  } catch (error) {
+    console.error('Error during application (/) commands registration:', error);
+  }
 
   try {
     // 1. Scan all voice channels to find currently active users (excluding bots)
@@ -64,3 +101,4 @@ export async function execute(client) {
 
   console.log(`Monitoring voice channels. Alerts will be sent directly via DM to User ID: ${config.ownerId}`);
 }
+

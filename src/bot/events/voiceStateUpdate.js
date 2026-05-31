@@ -2,6 +2,7 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { config } from '../../config/index.js';
 import { joinTimes } from '../client.js';
 import { addDuration, saveActiveSession, deleteActiveSession } from '../../services/statService.js';
+import { isRoomIgnored } from '../../services/ignoredRoomService.js';
 
 
 export const name = 'voiceStateUpdate';
@@ -87,25 +88,42 @@ export async function execute(oldState, newState) {
     if (isJoinOrSwitch) {
       let alertMessage;
       if (!oldChannelId) {
+        // If the room they joined is ignored, skip notification
+        if (await isRoomIgnored(voiceChannelName)) {
+          console.log(`Skipping notification for ${username} joining ignored room ${voiceChannelName}`);
+          return;
+        }
         alertMessage = `${username} join ${voiceChannelName}`;
       } else {
         const oldChannel = oldState.channel;
         const oldChannelName = oldChannel ? oldChannel.name : 'Unknown Voice Channel';
-        alertMessage = `${username} moved from ${oldChannelName} to ${voiceChannelName}`;
+        
+        // If moving to an ignored room, skip notification entirely
+        if (await isRoomIgnored(voiceChannelName)) {
+          console.log(`Skipping notification for ${username} moving to ignored room ${voiceChannelName}`);
+          return;
+        }
+
+        // If moving from an ignored room to a non-ignored room, treat it as a join to avoid leaking the ignored room name
+        if (await isRoomIgnored(oldChannelName)) {
+          alertMessage = `${username} join ${voiceChannelName}`;
+        } else {
+          alertMessage = `${username} moved from ${oldChannelName} to ${voiceChannelName}`;
+        }
       }
       await notifyOwner(newState.client, alertMessage);
     }
 
     // 2. Handle screen share (streaming) started notification
     const screenShareStarted = !oldState.streaming && newState.streaming;
-    if (screenShareStarted) {
+    if (screenShareStarted && !(await isRoomIgnored(voiceChannelName))) {
       const alertMessage = `${username} started sharing screen in ${voiceChannelName}`;
       await notifyOwner(newState.client, alertMessage);
     }
 
     // 3. Handle camera (video) opened notification
     const cameraStarted = !oldState.selfVideo && newState.selfVideo;
-    if (cameraStarted) {
+    if (cameraStarted && !(await isRoomIgnored(voiceChannelName))) {
       const alertMessage = `${username} turned on camera in ${voiceChannelName}`;
       await notifyOwner(newState.client, alertMessage);
     }
@@ -115,3 +133,4 @@ export async function execute(oldState, newState) {
     }
   }
 }
+
