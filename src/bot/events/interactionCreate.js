@@ -1,6 +1,7 @@
 import { config } from '../../config/index.js';
 import { buttonHandlers } from '../buttons/index.js';
 import { ignoreRoom, unignoreRoom, getIgnoredRooms } from '../../services/ignoredRoomService.js';
+import { ignoreUser, unignoreUser, getIgnoredUsers } from '../../services/ignoredUserService.js';
 
 export const name = 'interactionCreate';
 
@@ -54,6 +55,80 @@ async function handleChatInputCommand(interaction) {
       }
       return interaction.reply({
         content: `**Ignored Rooms:**\n${rooms.map(r => `- ${r}`).join('\n')}`,
+        ephemeral: true
+      });
+    }
+
+    if (commandName === 'ignore-user') {
+      const userOption = interaction.options.getUser('user');
+      const usernameOption = interaction.options.getString('username');
+
+      if (!userOption && !usernameOption) {
+        return interaction.reply({
+          content: 'Please specify a user to ignore, either by selecting them or typing their username.',
+          ephemeral: true
+        });
+      }
+
+      const success = await ignoreUser({
+        userId: userOption ? userOption.id : null,
+        username: userOption ? userOption.username : usernameOption
+      });
+
+      const targetName = userOption ? userOption.username : usernameOption;
+      if (success) {
+        return interaction.reply({
+          content: `User **${targetName}** is now ignored.`,
+          ephemeral: true
+        });
+      } else {
+        return interaction.reply({
+          content: 'Failed to ignore user due to an error.',
+          ephemeral: true
+        });
+      }
+    }
+
+    if (commandName === 'unignore-user') {
+      const userOption = interaction.options.getUser('user');
+      const usernameOption = interaction.options.getString('username');
+
+      if (!userOption && !usernameOption) {
+        return interaction.reply({
+          content: 'Please specify a user to unignore, either by selecting them or typing their username.',
+          ephemeral: true
+        });
+      }
+
+      const removed = await unignoreUser({
+        userId: userOption ? userOption.id : null,
+        username: userOption ? userOption.username : usernameOption
+      });
+
+      const targetName = userOption ? userOption.username : usernameOption;
+      if (removed) {
+        return interaction.reply({
+          content: `User **${targetName}** has been removed from the ignored list.`,
+          ephemeral: true
+        });
+      } else {
+        return interaction.reply({
+          content: `User **${targetName}** was not found in the ignored list.`,
+          ephemeral: true
+        });
+      }
+    }
+
+    if (commandName === 'list-ignored-users') {
+      const users = await getIgnoredUsers();
+      if (users.length === 0) {
+        return interaction.reply({
+          content: 'No users are currently ignored.',
+          ephemeral: true
+        });
+      }
+      return interaction.reply({
+        content: `**Ignored Users:**\n${users.map(u => `- ${u}`).join('\n')}`,
         ephemeral: true
       });
     }

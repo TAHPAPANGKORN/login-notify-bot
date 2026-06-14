@@ -37,7 +37,36 @@ export async function execute(client) {
         ),
       new SlashCommandBuilder()
         .setName('list-ignored-rooms')
-        .setDescription('List all ignored voice channels')
+        .setDescription('List all ignored voice channels'),
+      new SlashCommandBuilder()
+        .setName('ignore-user')
+        .setDescription('Ignore login notifications for a specific user')
+        .addUserOption(option =>
+          option.setName('user')
+            .setDescription('Select the user to ignore')
+            .setRequired(false)
+        )
+        .addStringOption(option =>
+          option.setName('username')
+            .setDescription('Type a username or display name to ignore')
+            .setRequired(false)
+        ),
+      new SlashCommandBuilder()
+        .setName('unignore-user')
+        .setDescription('Stop ignoring login notifications for a specific user')
+        .addUserOption(option =>
+          option.setName('user')
+            .setDescription('Select the user to unignore')
+            .setRequired(false)
+        )
+        .addStringOption(option =>
+          option.setName('username')
+            .setDescription('Type a username or display name to unignore')
+            .setRequired(false)
+        ),
+      new SlashCommandBuilder()
+        .setName('list-ignored-users')
+        .setDescription('List all ignored users')
     ].map(command => command.toJSON());
 
     await rest.put(

@@ -3,6 +3,7 @@ import { config } from '../../config/index.js';
 import { joinTimes } from '../client.js';
 import { addDuration, saveActiveSession, deleteActiveSession } from '../../services/statService.js';
 import { isRoomIgnored } from '../../services/ignoredRoomService.js';
+import { isUserIgnored } from '../../services/ignoredUserService.js';
 
 
 export const name = 'voiceStateUpdate';
@@ -48,6 +49,12 @@ export async function execute(oldState, newState) {
 
   // Do NOT notify if the user is the Owner (prevents self-notification)
   if (member.id !== config.ownerId) {
+    // Check if the user is ignored
+    if (await isUserIgnored(member)) {
+      console.log(`Skipping notification for ignored user: ${member.user.username}`);
+      return;
+    }
+
     const username = member.displayName;
     const voiceChannel = newState.channel;
     const voiceChannelName = voiceChannel ? voiceChannel.name : 'Unknown Voice Channel';
